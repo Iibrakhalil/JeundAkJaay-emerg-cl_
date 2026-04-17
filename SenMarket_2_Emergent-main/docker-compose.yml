@@ -1,0 +1,56 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: senmarket-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - senmarket
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: senmarket-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MONGO_URL: ${MONGO_URL:-mongodb://mongodb:27017}
+      DB_NAME: ${DB_NAME:-senmarket}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-replace-with-a-secure-random-key}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin123!}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+    volumes:
+      - uploads_data:/app/backend/uploads
+    networks:
+      - senmarket
+    depends_on:
+      - mongodb
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8000}
+    container_name: senmarket-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - senmarket
+
+volumes:
+  uploads_data:
+  mongodb_data:
+
+networks:
+  senmarket:
+    driver: bridge
